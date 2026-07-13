@@ -9,19 +9,7 @@ cat_service = CategoryService()
 tx_service = TransactionService()
 currency_service = CurrencyConverter()
 
-@api_bp.route('/transactions', methods=['GET'])
-@login_required
-def get_transactions_api():
-    user_id = get_current_user().id
-    transactions = tx_service.get_all_by_user(user_id)
-    return jsonify([{
-        'id': t.id,
-        'amount': float(t.amount),
-        'type': t.type,
-        'category_id': t.category_id,
-        'description': t.description,
-        'date': t.date.isoformat()
-    } for t in transactions]), 200
+
 
 @api_bp.route('/transactions', methods=['GET'])
 @login_required
