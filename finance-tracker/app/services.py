@@ -1,9 +1,20 @@
 import requests
 from datetime import datetime, timezone, timedelta
 from app.extensions import db
-from app.models import Transaction, Category, ExchangeRate
+from app.models import Transaction, Category, ExchangeRate, Budget
 
 class TransactionService:
+    def get_all_by_user(self, user_id):
+        return Transaction.query.filter(Transaction.user_id == user_id, Transaction.deleted_at.is_(None)).all()
+    
+    def create_transaction(self, user_id, category_id, amount, description, date=None):
+        if not date:
+            date = datetime.utcnow().date()
+        transaction = Transaction(user_id=user_id, category_id=category_id, amount=amount, description=description, date=date)
+        db.session.add(transaction)
+        db.session.commit()
+        return transaction
+    
     def get_monthly_summary(self, user_id, year, month):
         transactions = Transaction.query.filter(
             Transaction.user_id == user_id,
@@ -50,6 +61,12 @@ class TransactionService:
 
         return output.getvalue()
     
+    def soft_delete_transaction(self, transaction_id, user_id):
+        transaction = Transaction.query.filter_by(id=transaction_id, user_id=user_id).first_or_404()
+        transaction.deleted_at = datetime.utcnow()
+        db.session.commit()
+        return True
+    
 class CurrencyConverter(TransactionService):
     BASE_URL = 'https://api.exchangerate-api.com/v4/latest/GEL'
     CACHE_DURATION = timedelta(hours=1)
@@ -85,3 +102,52 @@ class CurrencyConverter(TransactionService):
 
         db.session.commit()
         return rate
+    
+
+class CategoryService:
+    def get_all_by_user(self, user_id):
+        return Category.query.filter_by(user_id=user_id).all()
+
+    def create_category(self, user_id, name, cat_type, color='#6c757d'):
+        category = Category(user_id=user_id, name=name, type=cat_type, color=color)
+        db.session.add(category)
+        db.session.commit()
+        return category
+    
+    def update_category(self, category_id, user_id, name, cat_type, color):
+        category = Category.query.filter_by(id=category_id, user_id=user_id).first_or_404()
+        category.name = name
+        category.type = cat_type
+        category.color = color
+        db.session.commit()
+        return category
+    
+    def delete_category(self, category_id, user_id):
+        category = Category.query.filter_by(id=category_id, user_id=user_id).first_or_404()
+        db.session.delete(category)
+        db.session.commit()
+        return True
+
+class BudgetService:
+    def get_all_by_user(self, user_id):
+        return Budget.query.filter_by(user_id=user_id).all()
+    
+    def create_or_update_budget(self, user_id, category_id, amount, month, year):
+        # Handle unique constraint safely
+        budget = Budget.query.filter_by(user_id=user_id, category_id=category_id, month=month, year=year).first()
+        if budget:
+            budget.amount = amount
+        else:
+            budget = Budget(user_id=user_id, category_id=category_id, amount=amount, month=month, year=year)
+            db.session.add(budget)
+        
+        db.session.commit()
+        return budget
+    
+    def delete_budget(self, budget_id, user_id):
+        budget = Budget.query.filter_by(id=budget_id, user_id=user_id).first_or_404()
+        db.session.delete(budget)
+        db.session.commit()
+        return True
+    
+
