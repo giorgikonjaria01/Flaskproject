@@ -70,8 +70,7 @@ def dashboard():
         search=search,
         category_id=category_id,
         type_filter=type_filter,
-        budget_warnings=warnings,
-        budgets=budgets
+        budget_warnings=warnings
     )
 
 # --- CATEGORY CRUD ---
