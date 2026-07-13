@@ -1,6 +1,7 @@
 from flask import Flask
 from app.extensions import db
 from flask_migrate import Migrate
+from app.utils import format_currency
 
 def create_app():
     app = Flask(__name__)
@@ -17,5 +18,7 @@ def create_app():
     app.register_blueprint(auth_bp)
     app.register_blueprint(api_bp, url_prefix='/api')
     app.register_blueprint(main_bp)
+
+    app.jinja_env.filters['currency'] = format_currency
 
     return app
