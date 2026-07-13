@@ -90,3 +90,29 @@ def get_categories_api():
     } for c in categories]), 200
 
 
+@api_bp.route('/convert', methods=['GET'])
+@login_required
+def convert_currency_api():
+    amount = request.args.get('amount')
+    from_cur = request.args.get('from', 'GEL')
+    to_cur = request.args.get('to')
+
+    if not amount or not to_cur:
+        return jsonify({'error': 'amount and to are required'}), 400
+
+    try:
+        amount = float(amount)
+    except ValueError:
+        return jsonify({'error': 'amount must be a number'}), 400
+
+    try:
+        converted = currency_service.convert(amount, from_cur, to_cur)
+    except Exception:
+        return jsonify({'error': 'currency conversion failed'}), 502
+
+    return jsonify({
+        'original_amount': amount,
+        'from': from_cur,
+        'to': to_cur,
+        'converted_amount': round(converted, 2)
+    }), 200

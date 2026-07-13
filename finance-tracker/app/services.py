@@ -2,6 +2,7 @@ import requests
 from datetime import datetime, timezone, timedelta
 from app.extensions import db
 from app.models import Transaction, Category, ExchangeRate, Budget
+from flask import current_app
 
 class TransactionService:
     def get_all_by_user(self, user_id):
@@ -75,10 +76,13 @@ class CurrencyConverter(TransactionService):
     BASE_URL = 'https://api.exchangerate-api.com/v4/latest/GEL'
     CACHE_DURATION = timedelta(hours=1)
 
-    def get_rates(self):
-        response = requests.get(self.BASE_URL, timeout=5)
+    def get_rates(self, base_currency='GEL'):
+        api_key = current_app.config['EXCHANGE_API_KEY']
+        url = f'https://v6.exchangerate-api.com/v6/{api_key}/latest/{base_currency}'
+        response = requests.get(url, timeout=5)
         response.raise_for_status()
-        return response.json()['rates']
+        data = response.json()
+        return data['conversion_rates']   # note: v6's response uses this key name, not 'rates'
 
     def convert(self, amount, from_cur, to_cur):
         if from_cur == to_cur:
@@ -93,8 +97,7 @@ class CurrencyConverter(TransactionService):
         if cached and (datetime.now(timezone.utc) - cached.fetched_at.replace(tzinfo=timezone.utc)) < self.CACHE_DURATION:
             return cached.rate
 
-        # cache miss or expired — fetch fresh rates
-        rates = self.get_rates()
+        rates = self.get_rates(base_currency=from_cur)   # pass from_cur through
         rate = rates.get(to_cur)
 
         if cached:
