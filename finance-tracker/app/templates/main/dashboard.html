@@ -1,150 +1,392 @@
+```html
 {% extends "base.html" %}
 {% block title %}Dashboard{% endblock %}
+
 {% block content %}
 
-<h1>Dashboard</h1>
+<h1 class="mb-4">Finance Dashboard</h1>
 
 {% if budget_warnings %}
-<span class="badge bg-warning">
-    {{ budget_warnings|length }} Budget Warning{% if budget_warnings|length != 1 %}s{% endif %}
-</span>
+<div class="alert alert-warning">
+    <strong>{{ budget_warnings|length }} Budget Warning{% if budget_warnings|length != 1 %}s{% endif %}</strong>
+    <br>
+    Some categories have reached 80% of their monthly budget.
+</div>
 {% endif %}
 
-<h3>Add Transaction</h3>
 
-<form method="POST" action="{{ url_for('main.create_transaction') }}">
-    <select name="category_id" class="form-select">
-        {% for c in categories %}
-        <option value="{{ c.id }}">
-            {{ c.name }} ({{ c.type }})
-        </option>
-        {% endfor %}
-    </select>
+<!-- Add Transaction -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h4>Add Transaction</h4>
+    </div>
 
-    <input name="amount" type="number" step="0.01" class="form-control" placeholder="Amount">
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('main.create_transaction') }}">
 
-    <input name="description" class="form-control" placeholder="Description">
+            <label class="form-label">Category</label>
+            <select name="category_id" class="form-select mb-3">
+                <option selected disabled>Select category</option>
 
-    <button class="btn btn-primary">
-        Add Transaction
-    </button>
-</form>
+                {% for c in categories %}
+                <option value="{{ c.id }}">
+                    {{ c.name }} ({{ c.type }})
+                </option>
+                {% endfor %}
+            </select>
 
-<h3>Create Category</h3>
 
-<form method="POST" action="{{ url_for('main.create_category') }}">
+            <label class="form-label">Amount</label>
+            <input 
+                name="amount"
+                type="number"
+                step="0.01"
+                class="form-control mb-3"
+                placeholder="Example: 50.00"
+                required
+            >
 
-    <input name="name" class="form-control" placeholder="Category name">
 
-    <select name="type" class="form-select">
-        <option value="expense">Expense</option>
-        <option value="income">Income</option>
-    </select>
+            <label class="form-label">Date</label>
+            <input 
+                name="date"
+                type="date"
+                class="form-control mb-3"
+            >
 
-    <input name="color" type="color">
 
-    <button class="btn btn-success">
-        Create Category
-    </button>
+            <label class="form-label">Description / Note</label>
+            <input 
+                name="description"
+                class="form-control mb-3"
+                placeholder="Example: Grocery shopping"
+            >
 
-</form>
 
-<h3>Create Budget</h3>
+            <button class="btn btn-primary">
+                Add Transaction
+            </button>
 
-<form method="POST" action="{{ url_for('main.create_budget') }}">
-
-    <select name="category_id">
-        {% for c in categories %}
-        <option value="{{ c.id }}">{{ c.name }}</option>
-        {% endfor %}
-    </select>
-
-    <input name="amount" type="number" step="0.01">
-
-    <input name="month" type="number" min="1" max="12">
-
-    <input name="year" type="number">
-
-    <button class="btn btn-warning">
-        Save Budget
-    </button>
-
-</form>
-
-<div class="row mb-4">
-    <div class="col-md-4"><div class="card p-3">Income: {{ summary.income | currency(get_current_user().currency) }}</div></div>
-    <div class="col-md-4"><div class="card p-3">Expense: {{ summary.expense | currency(get_current_user().currency) }}</div></div>
-    <div class="col-md-4"><div class="card p-3">Balance: {{ summary.balance | currency(get_current_user().currency) }}</div></div>
+        </form>
+    </div>
 </div>
+
+
+
+
+<!-- Create Category -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h4>Create Category</h4>
+    </div>
+
+    <div class="card-body">
+
+        <p class="text-muted">
+            Create custom income or expense categories.
+        </p>
+
+        <form method="POST" action="{{ url_for('main.create_category') }}">
+
+            <label class="form-label">Category Name</label>
+            <input 
+                name="name"
+                class="form-control mb-3"
+                placeholder="Example: Food"
+                required
+            >
+
+
+            <label class="form-label">Type</label>
+            <select name="type" class="form-select mb-3">
+                <option value="expense">Expense</option>
+                <option value="income">Income</option>
+            </select>
+
+
+            <label class="form-label">Color</label>
+            <input 
+                name="color"
+                type="color"
+                class="form-control form-control-color mb-3"
+            >
+
+
+            <button class="btn btn-success">
+                Create Category
+            </button>
+
+        </form>
+
+    </div>
+</div>
+
+
+
+
+<!-- Monthly Budget -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h4>Set Monthly Budget</h4>
+    </div>
+
+    <div class="card-body">
+
+        <p class="text-muted">
+            Set a spending limit for a category. A warning appears when spending reaches 80%.
+        </p>
+
+        <form method="POST" action="{{ url_for('main.create_budget') }}">
+
+            <label class="form-label">Category</label>
+            <select name="category_id" class="form-select mb-3">
+
+                {% for c in categories %}
+                <option value="{{ c.id }}">
+                    {{ c.name }}
+                </option>
+                {% endfor %}
+
+            </select>
+
+
+            <label class="form-label">Budget Amount</label>
+            <input 
+                name="amount"
+                type="number"
+                step="0.01"
+                class="form-control mb-3"
+            >
+
+
+            <label class="form-label">Month</label>
+            <input 
+                name="month"
+                type="number"
+                min="1"
+                max="12"
+                class="form-control mb-3"
+            >
+
+
+            <label class="form-label">Year</label>
+            <input 
+                name="year"
+                type="number"
+                class="form-control mb-3"
+            >
+
+
+            <button class="btn btn-warning">
+                Save Budget
+            </button>
+
+        </form>
+
+    </div>
+</div>
+
+
+
+
+
+<!-- Statistics -->
+<div class="row mb-4">
+
+    <div class="col-md-4">
+        <div class="card p-3">
+            Income:
+            {{ summary.income | currency(get_current_user().currency) }}
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card p-3">
+            Expense:
+            {{ summary.expense | currency(get_current_user().currency) }}
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card p-3">
+            Balance:
+            {{ summary.balance | currency(get_current_user().currency) }}
+        </div>
+    </div>
+
+</div>
+
+
+
 
 {% if warnings %}
 <div class="alert alert-warning">
     <strong>Budget Alerts:</strong>
+
     <ul class="mb-0">
-        {% for w in warnings %}<li>{{ w }}</li>{% endfor %}
+        {% for w in warnings %}
+        <li>{{ w }}</li>
+        {% endfor %}
     </ul>
 </div>
 {% endif %}
 
-<!-- Search & Filter -->
+
+
+
+<!-- Search and Filters -->
 <form method="GET" class="row g-2 mb-3">
+
     <div class="col-md-4">
-        <input type="text" name="search" class="form-control" placeholder="Search description..." value="{{ search }}">
+        <input 
+            type="text"
+            name="search"
+            class="form-control"
+            placeholder="Search description..."
+            value="{{ search }}"
+        >
     </div>
+
+
     <div class="col-md-3">
         <select name="category_id" class="form-select">
-            <option value="">All Categories</option>
+
+            <option value="">
+                All Categories
+            </option>
+
             {% for c in categories %}
-            <option value="{{ c.id }}" {% if category_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+            <option 
+                value="{{ c.id }}"
+                {% if category_id == c.id %}selected{% endif %}
+            >
+                {{ c.name }}
+            </option>
             {% endfor %}
+
         </select>
     </div>
+
+
     <div class="col-md-3">
         <select name="type_filter" class="form-select">
-            <option value="">All Types</option>
-            <option value="income" {% if type_filter == 'income' %}selected{% endif %}>Income</option>
-            <option value="expense" {% if type_filter == 'expense' %}selected{% endif %}>Expense</option>
+
+            <option value="">
+                All Types
+            </option>
+
+            <option value="income" {% if type_filter == 'income' %}selected{% endif %}>
+                Income
+            </option>
+
+            <option value="expense" {% if type_filter == 'expense' %}selected{% endif %}>
+                Expense
+            </option>
+
         </select>
     </div>
+
+
     <div class="col-md-2">
-        <button type="submit" class="btn btn-primary w-100">Filter</button>
+        <button class="btn btn-primary w-100">
+            Filter
+        </button>
     </div>
+
 </form>
 
-<a href="{{ url_for('main.export_csv') }}" class="btn btn-outline-secondary btn-sm mb-3">Export CSV</a>
 
-<!-- Transaction list -->
-<table class="table">
-    <thead><tr><th>Date</th><th>Category</th><th>Type</th><th>Amount</th><th>Note</th><th></th></tr></thead>
+
+
+<a href="{{ url_for('main.export_csv') }}" class="btn btn-outline-secondary mb-3">
+    Export CSV
+</a>
+
+
+
+
+<!-- Transactions -->
+<table class="table table-striped">
+
+    <thead>
+        <tr>
+            <th>Date</th>
+            <th>Category</th>
+            <th>Type</th>
+            <th>Amount</th>
+            <th>Description</th>
+            <th></th>
+        </tr>
+    </thead>
+
+
     <tbody>
-        {% for t in transactions %}
+
+    {% for t in transactions %}
+
         <tr>
             <td>{{ t.date }}</td>
             <td>{{ t.category.name }}</td>
             <td>{{ t.type }}</td>
             <td>{{ t.amount | currency(get_current_user().currency) }}</td>
             <td>{{ t.description }}</td>
+
             <td>
-                <form method="POST" action="{{ url_for('main.delete_transaction', id=t.id) }}" style="display:inline">
-                    <button class="btn btn-sm btn-danger">Delete</button>
+                <form method="POST" action="{{ url_for('main.delete_transaction', id=t.id) }}">
+                    <button 
+                        class="btn btn-sm btn-danger"
+                        onclick="return confirm('Delete this transaction?')"
+                    >
+                        Delete
+                    </button>
                 </form>
             </td>
+
         </tr>
-        {% endfor %}
+
+    {% endfor %}
+
     </tbody>
+
 </table>
+
+
+
+
 
 <!-- Pagination -->
 <nav>
     <ul class="pagination">
+
         {% if pagination.has_prev %}
-        <li class="page-item"><a class="page-link" href="{{ url_for('main.dashboard', page=pagination.prev_num, search=search, category_id=category_id, type_filter=type_filter) }}">Previous</a></li>
+        <li class="page-item">
+            <a class="page-link"
+            href="{{ url_for('main.dashboard', page=pagination.prev_num, search=search, category_id=category_id, type_filter=type_filter) }}">
+                Previous
+            </a>
+        </li>
         {% endif %}
-        <li class="page-item disabled"><span class="page-link">Page {{ pagination.page }} of {{ pagination.pages }}</span></li>
+
+
+        <li class="page-item disabled">
+            <span class="page-link">
+                Page {{ pagination.page }} of {{ pagination.pages }}
+            </span>
+        </li>
+
+
         {% if pagination.has_next %}
-        <li class="page-item"><a class="page-link" href="{{ url_for('main.dashboard', page=pagination.next_num, search=search, category_id=category_id, type_filter=type_filter) }}">Next</a></li>
+        <li class="page-item">
+            <a class="page-link"
+            href="{{ url_for('main.dashboard', page=pagination.next_num, search=search, category_id=category_id, type_filter=type_filter) }}">
+                Next
+            </a>
+        </li>
         {% endif %}
+
     </ul>
 </nav>
 
+
 {% endblock %}
+```
