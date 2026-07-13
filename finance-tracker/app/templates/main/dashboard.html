@@ -186,7 +186,49 @@
     </div>
 </div>
 
+<!-- Current Budgets -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h4>Current Budgets</h4>
+    </div>
 
+    <div class="card-body">
+
+        {% if budgets %}
+
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Category</th>
+                    <th>Amount</th>
+                    <th>Month</th>
+                    <th>Year</th>
+                </tr>
+            </thead>
+
+            <tbody>
+            {% for b in budgets %}
+                <tr>
+                    <td>{{ b.category.name }}</td>
+                    <td>{{ b.amount | currency(get_current_user().currency) }}</td>
+                    <td>{{ b.month }}</td>
+                    <td>{{ b.year }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+
+        </table>
+
+        {% else %}
+
+        <p class="text-muted">
+            No budgets created yet.
+        </p>
+
+        {% endif %}
+
+    </div>
+</div>
 
 
 
