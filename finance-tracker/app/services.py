@@ -1,5 +1,7 @@
 import requests
 from datetime import datetime, timezone, timedelta
+
+from sqlalchemy import func
 from app.extensions import db
 from app.models import Transaction, Category, ExchangeRate, Budget
 from flask import current_app
@@ -11,7 +13,9 @@ class TransactionService:
     def create_transaction(self, user_id, category_id, amount, description, date=None):
         if not date:
             date = datetime.utcnow().date()
-        transaction = Transaction(user_id=user_id, category_id=category_id, amount=amount, description=description, date=date)
+
+        category = Category.query.get_or_404(category_id)
+        transaction = Transaction(user_id=user_id, category_id=category_id, amount=amount, description=description, date=date, type=category.type)
         db.session.add(transaction)
         db.session.commit()
         return transaction
@@ -175,5 +179,39 @@ class BudgetService:
         db.session.delete(budget)
         db.session.commit()
         return True
+    
+    from sqlalchemy import func
+
+    def get_budget_warnings(self, user_id):
+        warnings = []
+
+        now = datetime.utcnow()
+
+        budgets = Budget.query.filter_by(
+            user_id=user_id,
+            month=now.month,
+            year=now.year
+        ).all()
+
+        for budget in budgets:
+            spent = db.session.query(
+                func.sum(Transaction.amount)
+            ).filter(
+                Transaction.user_id == user_id,
+                Transaction.category_id == budget.category_id,
+                Transaction.deleted_at.is_(None),
+                Transaction.type == "expense",
+                db.extract("month", Transaction.date) == now.month,
+                db.extract("year", Transaction.date) == now.year
+            ).scalar() or 0
+
+            if spent >= budget.amount * 0.8:
+                warnings.append({
+                    "category": budget.category.name,
+                    "spent": float(spent),
+                    "budget": float(budget.amount)
+                })
+
+        return warnings
     
 

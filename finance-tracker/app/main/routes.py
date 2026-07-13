@@ -49,6 +49,17 @@ def dashboard():
                 warnings.append(f"{b.category.name}: {spent:.2f} / {float(b.amount):.2f} (80%+ used)")
                 flash(f'Warning: {b.category.name} budget is 80%+ used!', 'warning')
 
+    budget_service = BudgetService()
+
+    warnings = budget_service.get_budget_warnings(user_id)
+
+    for warning in warnings:
+        flash(
+        f"{warning['category']} budget is over 80% "
+        f"({warning['spent']:.2f}/{warning['budget']:.2f})",
+        "warning"
+        )
+
     return render_template(
         'main/dashboard.html',
         pagination=pagination,
@@ -59,7 +70,8 @@ def dashboard():
         warnings=warnings,
         search=search,
         category_id=category_id,
-        type_filter=type_filter
+        type_filter=type_filter,
+        budget_warnings=warnings
     )
 
 # --- CATEGORY CRUD ---

@@ -4,6 +4,12 @@
 
 <h1>Dashboard</h1>
 
+{% if budget_warnings %}
+<span class="badge bg-warning">
+    {{ budget_warnings|length }} Budget Warning{% if budget_warnings|length != 1 %}s{% endif %}
+</span>
+{% endif %}
+
 <div class="row mb-4">
     <div class="col-md-4"><div class="card p-3">Income: {{ summary.income | currency(get_current_user().currency) }}</div></div>
     <div class="col-md-4"><div class="card p-3">Expense: {{ summary.expense | currency(get_current_user().currency) }}</div></div>
