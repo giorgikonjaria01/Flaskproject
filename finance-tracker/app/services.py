@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 import requests
 from datetime import datetime, timezone, timedelta
 
@@ -209,7 +211,7 @@ class BudgetService:
                 db.extract("year", Transaction.date) == now.year
             ).scalar() or 0
 
-            if spent >= budget.amount * 0.8:
+            if spent >= budget.amount * Decimal("0.8"):
                 warnings.append({
                     "category": budget.category.name,
                     "spent": float(spent),
