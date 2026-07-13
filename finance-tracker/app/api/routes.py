@@ -1,12 +1,13 @@
+from datetime import datetime
 from flask import Blueprint, jsonify, request
 from app.auth.decorators import login_required, get_current_user
-from app.services import TransactionService, CategoryService
-from datetime import datetime
+from app.services import TransactionService, CategoryService, CurrencyConverter
 
 api_bp = Blueprint('api', __name__)
 
 cat_service = CategoryService()
 tx_service = TransactionService()
+currency_service = CurrencyConverter()
 
 @api_bp.route('/transactions', methods=['GET'])
 @login_required
@@ -16,29 +17,60 @@ def get_transactions_api():
     return jsonify([{
         'id': t.id,
         'amount': float(t.amount),
+        'type': t.type,
+        'category_id': t.category_id,
         'description': t.description,
         'date': t.date.isoformat()
-    } for t in transactions])
+    } for t in transactions]), 200
 
 @api_bp.route('/transactions', methods=['POST'])
 @login_required
 def create_transaction_api():
     user_id = get_current_user().id
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
+
+    category_id = data.get('category_id')
+    amount = data.get('amount')
+
+    # validation — bad input must return 400, not crash or silently succeed
+    if not category_id or amount is None:
+        return jsonify({'error': 'category_id and amount are required'}), 400
+
+    try:
+        amount = float(amount)
+    except (TypeError, ValueError):
+        return jsonify({'error': 'amount must be a number'}), 400
+
+    if amount <= 0:
+        return jsonify({'error': 'amount must be positive'}), 400
+
+    category = cat_service.get_by_id(category_id, user_id)
+    if not category:
+        return jsonify({'error': 'invalid category_id'}), 400
+
     tx = tx_service.create_transaction(
         user_id=user_id,
-        category_id=data.get('category_id'),
-        amount=data.get('amount'),
-        description=data.get('description')
+        category_id=category_id,
+        amount=amount,
+        description=data.get('description', '')
     )
-    return jsonify({'status': 'success', 'transaction_id': tx.id}), 201
+    return jsonify({
+        'id': tx.id,
+        'amount': float(tx.amount),
+        'date': tx.date.isoformat()
+    }), 201
 
 @api_bp.route('/transactions/<int:id>', methods=['DELETE'])
 @login_required
 def delete_transaction_api(id):
     user_id = get_current_user().id
+    transaction = tx_service.get_by_id(id, user_id)
+
+    if not transaction:
+        return jsonify({'error': 'transaction not found'}), 404
+
     tx_service.soft_delete_transaction(id, user_id)
-    return jsonify({'status': 'deleted'}), 200
+    return '', 204
 
 @api_bp.route('/balance', methods=['GET'])
 @login_required
@@ -56,3 +88,5 @@ def get_categories_api():
     return jsonify([{
         'id': c.id, 'name': c.name, 'type': c.type, 'color': c.color
     } for c in categories]), 200
+
+

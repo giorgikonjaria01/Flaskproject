@@ -61,11 +61,15 @@ class TransactionService:
 
         return output.getvalue()
     
+    def get_by_id(self, transaction_id, user_id):
+        return Transaction.query.filter_by(id=transaction_id, user_id=user_id, deleted_at=None).first()
+    
     def soft_delete_transaction(self, transaction_id, user_id):
         transaction = Transaction.query.filter_by(id=transaction_id, user_id=user_id).first_or_404()
         transaction.deleted_at = datetime.utcnow()
         db.session.commit()
         return True
+    
     
 class CurrencyConverter(TransactionService):
     BASE_URL = 'https://api.exchangerate-api.com/v4/latest/GEL'
@@ -127,6 +131,9 @@ class CategoryService:
         db.session.delete(category)
         db.session.commit()
         return True
+    
+    def get_by_id(self, category_id, user_id):
+        return Category.query.filter_by(id=category_id, user_id=user_id).first()
 
 class BudgetService:
     def get_all_by_user(self, user_id):
