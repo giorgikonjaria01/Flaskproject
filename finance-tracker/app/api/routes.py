@@ -23,42 +23,41 @@ def get_transactions_api():
         'date': t.date.isoformat()
     } for t in transactions]), 200
 
-@api_bp.route('/transactions', methods=['POST'])
+@api_bp.route('/transactions', methods=['GET'])
 @login_required
-def create_transaction_api():
+def get_transactions_api():
+
     user_id = get_current_user().id
-    data = request.get_json(silent=True) or {}
 
-    category_id = data.get('category_id')
-    amount = data.get('amount')
+    page = request.args.get('page', 1, type=int)
+    search = request.args.get('search')
+    category_id = request.args.get('category_id', type=int)
+    type_filter = request.args.get('type')
 
-    # validation — bad input must return 400, not crash or silently succeed
-    if not category_id or amount is None:
-        return jsonify({'error': 'category_id and amount are required'}), 400
-
-    try:
-        amount = float(amount)
-    except (TypeError, ValueError):
-        return jsonify({'error': 'amount must be a number'}), 400
-
-    if amount <= 0:
-        return jsonify({'error': 'amount must be positive'}), 400
-
-    category = cat_service.get_by_id(category_id, user_id)
-    if not category:
-        return jsonify({'error': 'invalid category_id'}), 400
-
-    tx = tx_service.create_transaction(
-        user_id=user_id,
+    pagination = tx_service.get_paginated(
+        user_id,
+        page=page,
+        per_page=10,
+        search=search,
         category_id=category_id,
-        amount=amount,
-        description=data.get('description', '')
+        type_filter=type_filter
     )
+
     return jsonify({
-        'id': tx.id,
-        'amount': float(tx.amount),
-        'date': tx.date.isoformat()
-    }), 201
+        "page": pagination.page,
+        "pages": pagination.pages,
+        "transactions": [
+            {
+                "id": t.id,
+                "amount": float(t.amount),
+                "type": t.type,
+                "category": t.category.name,
+                "description": t.description,
+                "date": t.date.isoformat()
+            }
+            for t in pagination.items
+        ]
+    }), 200
 
 @api_bp.route('/transactions/<int:id>', methods=['DELETE'])
 @login_required

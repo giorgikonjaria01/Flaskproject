@@ -12,7 +12,7 @@ class TransactionService:
     
     def create_transaction(self, user_id, category_id, amount, description, date=None):
         if not date:
-            date = datetime.utcnow().date()
+            date = datetime.utcnow()
 
         category = Category.query.get_or_404(category_id)
         transaction = Transaction(user_id=user_id, category_id=category_id, amount=amount, description=description, date=date, type=category.type)
@@ -157,6 +157,10 @@ class CategoryService:
     
     def get_by_id(self, category_id, user_id):
         return Category.query.filter_by(id=category_id, user_id=user_id).first()
+
+    def get_top_categories(self, user_id, start, end):
+        totals = self.get_category_totals(user_id,start,end)
+        return list(totals.items())[:3]
 
 class BudgetService:
     def get_all_by_user(self, user_id):

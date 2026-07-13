@@ -1,0 +1,23 @@
+<select name="currency" class="form-select">
+
+    <option value="GEL"
+    {% if user.currency == "GEL" %}selected{% endif %}>
+        GEL
+    </option>
+
+    <option value="USD"
+    {% if user.currency == "USD" %}selected{% endif %}>
+        USD
+    </option>
+
+    <option value="EUR"
+    {% if user.currency == "EUR" %}selected{% endif %}>
+        EUR
+    </option>
+
+    <option value="GBP"
+    {% if user.currency == "GBP" %}selected{% endif %}>
+        GBP
+    </option>
+
+</select>

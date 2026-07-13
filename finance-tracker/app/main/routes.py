@@ -2,6 +2,8 @@ from flask import Response, render_template, request, redirect, url_for, flash, 
 from app.auth.decorators import login_required, get_current_user
 from app.services import TransactionService, CategoryService, BudgetService
 from datetime import datetime
+from app.extensions import db
+from app.models import User
 
 main_bp = Blueprint('main', __name__)
 
@@ -149,3 +151,24 @@ def delete_budget(id):
     budget_service.delete_budget(id, user_id)
     flash('Budget removed!')
     return redirect(url_for('main.dashboard'))
+
+
+@main_bp.route('/settings', methods=['GET', 'POST'])
+@login_required
+def settings():
+
+    user = get_current_user()
+
+    if request.method == "POST":
+
+        user.currency = request.form["currency"]
+        db.session.commit()
+
+        flash("Settings updated successfully", "success")
+
+        return redirect(url_for("main.settings"))
+
+    return render_template(
+        "settings.html",
+        user=user
+    )
