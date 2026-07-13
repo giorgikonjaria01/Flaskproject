@@ -49,7 +49,6 @@ def dashboard():
                 warnings.append(f"{b.category.name}: {spent:.2f} / {float(b.amount):.2f} (80%+ used)")
                 flash(f'Warning: {b.category.name} budget is 80%+ used!', 'warning')
 
-    budget_service = BudgetService()
 
     warnings = budget_service.get_budget_warnings(user_id)
 
