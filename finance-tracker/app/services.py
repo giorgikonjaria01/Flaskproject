@@ -71,6 +71,22 @@ class TransactionService:
         db.session.commit()
         return True
     
+    def get_paginated(self, user_id, page=1, per_page=10, search=None, category_id=None, type_filter=None):
+        query = Transaction.query.filter(
+            Transaction.user_id == user_id,
+            Transaction.deleted_at.is_(None)
+        )
+
+        if search:
+            query = query.filter(Transaction.description.ilike(f'%{search}%'))
+        if category_id:
+            query = query.filter(Transaction.category_id == category_id)
+        if type_filter:
+            query = query.filter(Transaction.type == type_filter)
+
+        query = query.order_by(Transaction.date.desc())
+        return query.paginate(page=page, per_page=per_page, error_out=False)
+    
     
 class CurrencyConverter(TransactionService):
     BASE_URL = 'https://api.exchangerate-api.com/v4/latest/GEL'

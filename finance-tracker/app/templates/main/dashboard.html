@@ -1,6 +1,83 @@
 {% extends "base.html" %}
 {% block title %}Dashboard{% endblock %}
 {% block content %}
+
 <h1>Dashboard</h1>
-<p>You are logged in.</p>
+
+<div class="row mb-4">
+    <div class="col-md-4"><div class="card p-3">Income: {{ summary.income | currency(get_current_user().currency) }}</div></div>
+    <div class="col-md-4"><div class="card p-3">Expense: {{ summary.expense | currency(get_current_user().currency) }}</div></div>
+    <div class="col-md-4"><div class="card p-3">Balance: {{ summary.balance | currency(get_current_user().currency) }}</div></div>
+</div>
+
+{% if warnings %}
+<div class="alert alert-warning">
+    <strong>Budget Alerts:</strong>
+    <ul class="mb-0">
+        {% for w in warnings %}<li>{{ w }}</li>{% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<!-- Search & Filter -->
+<form method="GET" class="row g-2 mb-3">
+    <div class="col-md-4">
+        <input type="text" name="search" class="form-control" placeholder="Search description..." value="{{ search }}">
+    </div>
+    <div class="col-md-3">
+        <select name="category_id" class="form-select">
+            <option value="">All Categories</option>
+            {% for c in categories %}
+            <option value="{{ c.id }}" {% if category_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-3">
+        <select name="type_filter" class="form-select">
+            <option value="">All Types</option>
+            <option value="income" {% if type_filter == 'income' %}selected{% endif %}>Income</option>
+            <option value="expense" {% if type_filter == 'expense' %}selected{% endif %}>Expense</option>
+        </select>
+    </div>
+    <div class="col-md-2">
+        <button type="submit" class="btn btn-primary w-100">Filter</button>
+    </div>
+</form>
+
+<a href="{{ url_for('main.export_csv') }}" class="btn btn-outline-secondary btn-sm mb-3">Export CSV</a>
+
+<!-- Transaction list -->
+<table class="table">
+    <thead><tr><th>Date</th><th>Category</th><th>Type</th><th>Amount</th><th>Note</th><th></th></tr></thead>
+    <tbody>
+        {% for t in transactions %}
+        <tr>
+            <td>{{ t.date }}</td>
+            <td>{{ t.category.name }}</td>
+            <td>{{ t.type }}</td>
+            <td>{{ t.amount | currency(get_current_user().currency) }}</td>
+            <td>{{ t.description }}</td>
+            <td>
+                <form method="POST" action="{{ url_for('main.delete_transaction', id=t.id) }}" style="display:inline">
+                    <button class="btn btn-sm btn-danger">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<!-- Pagination -->
+<nav>
+    <ul class="pagination">
+        {% if pagination.has_prev %}
+        <li class="page-item"><a class="page-link" href="{{ url_for('main.dashboard', page=pagination.prev_num, search=search, category_id=category_id, type_filter=type_filter) }}">Previous</a></li>
+        {% endif %}
+        <li class="page-item disabled"><span class="page-link">Page {{ pagination.page }} of {{ pagination.pages }}</span></li>
+        {% if pagination.has_next %}
+        <li class="page-item"><a class="page-link" href="{{ url_for('main.dashboard', page=pagination.next_num, search=search, category_id=category_id, type_filter=type_filter) }}">Next</a></li>
+        {% endif %}
+    </ul>
+</nav>
+
 {% endblock %}

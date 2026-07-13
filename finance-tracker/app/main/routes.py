@@ -1,6 +1,7 @@
-from flask import render_template, request, redirect, url_for, flash, Blueprint
+from flask import Response, render_template, request, redirect, url_for, flash, Blueprint
 from app.auth.decorators import login_required, get_current_user
 from app.services import TransactionService, CategoryService, BudgetService
+from datetime import datetime
 
 main_bp = Blueprint('main', __name__)
 
@@ -16,14 +17,50 @@ def index():
 @main_bp.route('/dashboard')
 @login_required
 def dashboard():
-    # Pass the logged-in user's ID dynamically
-    user_id = get_current_user().id 
-    
-    transactions = tx_service.get_all_by_user(user_id)
+    user_id = get_current_user().id
+
+    page = request.args.get('page', 1, type=int)
+    search = request.args.get('search', '')
+    category_id = request.args.get('category_id', type=int)
+    type_filter = request.args.get('type_filter', '')
+
+    pagination = tx_service.get_paginated(
+        user_id, page=page, per_page=10,
+        search=search, category_id=category_id, type_filter=type_filter
+    )
+
     categories = cat_service.get_all_by_user(user_id)
     budgets = budget_service.get_all_by_user(user_id)
-    
-    return render_template('main/dashboard.html', transactions=transactions, categories=categories, budgets=budgets)
+
+    now = datetime.utcnow()
+    summary = tx_service.get_monthly_summary(user_id, now.year, now.month)
+
+    # 80% budget warning check
+    warnings = []
+    category_totals = tx_service.get_category_totals(
+        user_id,
+        now.replace(day=1).date(),
+        now.date()
+    )
+    for b in budgets:
+        if b.month == now.month and b.year == now.year:
+            spent = category_totals.get(b.category.name, 0)
+            if spent >= float(b.amount) * 0.8:
+                warnings.append(f"{b.category.name}: {spent:.2f} / {float(b.amount):.2f} (80%+ used)")
+                flash(f'Warning: {b.category.name} budget is 80%+ used!', 'warning')
+
+    return render_template(
+        'main/dashboard.html',
+        pagination=pagination,
+        transactions=pagination.items,
+        categories=categories,
+        budgets=budgets,
+        summary=summary,
+        warnings=warnings,
+        search=search,
+        category_id=category_id,
+        type_filter=type_filter
+    )
 
 # --- CATEGORY CRUD ---
 @main_bp.route('/categories/create', methods=['POST'])
@@ -66,6 +103,19 @@ def delete_transaction(id):
     tx_service.soft_delete_transaction(id, user_id)
     flash('Transaction deleted!')
     return redirect(url_for('main.dashboard'))
+
+@main_bp.route('/transactions/export')
+@login_required
+def export_csv():
+    user_id = get_current_user().id
+    transactions = tx_service.get_all_by_user(user_id)
+    csv_data = tx_service.export_csv(transactions)
+
+    return Response(
+        csv_data,
+        mimetype='text/csv',
+        headers={'Content-Disposition': 'attachment; filename=transactions.csv'}
+    )
 
 
 @main_bp.route('/budgets/create', methods=['POST'])

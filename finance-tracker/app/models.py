@@ -41,6 +41,7 @@ class Transaction(db.Model):
     description = db.Column(db.String(255))
     date = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc).date(), nullable=False)
     deleted_at = db.Column(db.DateTime, nullable=True) # delete marker
+    type = db.Column(db.String(10), nullable=False)  # 'income' or 'expense'
 
     @property
     def is_deleted(self):
